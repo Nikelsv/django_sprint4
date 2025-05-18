@@ -5,18 +5,18 @@ from django.views.generic import UpdateView, DetailView
 from django.urls import reverse_lazy, reverse
 from django.http import Http404
 from django.utils import timezone
-from .models import Category, Post, Location, Comment
+from .models import Category, Post, Comment
 from django.core.paginator import Paginator
 from .forms import PostForm, CommentForm
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.views.generic.edit import DeleteView
-from django.views.decorators.http import require_POST
 from .forms import CommentForm
 from django.db.models import Count
 from django.core.exceptions import PermissionDenied
+from .forms import DeleteConfirmForm
 
 User = get_user_model()
+
 
 def post_detail(request, id):
     template = 'blog/detail.html'
@@ -25,15 +25,15 @@ def post_detail(request, id):
             .prefetch_related('comments__author'),
         pk=id
     )
-    
+
     # Проверяем, доступен ли пост текущему пользователю
-    if not (post.is_published 
-            and post.category.is_published 
+    if not (post.is_published
+            and post.category.is_published
             and post.pub_date <= timezone.now()):
         # Если пост не опубликован, проверяем, является ли пользователь автором
         if request.user != post.author:
             raise Http404("Пост не найден или недоступен")
-    
+
     comments = post.comments.select_related('author')
     comment_form = CommentForm()
 
@@ -94,6 +94,7 @@ def index(request):
 
     return render(request, template, context)
 
+
 @login_required
 def create_post(request):
     if request.method == 'POST':
@@ -102,30 +103,34 @@ def create_post(request):
             post = form.save(commit=False)
             post.author = request.user
             post.save()
-            return redirect(reverse('blog:profile', kwargs={'username': request.user.username}))
+            return redirect(reverse('blog:profile',
+                                    kwargs={
+                                        'username': request.user.username}))
     else:
         form = PostForm()
-    
+
     return render(request, 'blog/create.html', {'form': form})
+
 
 @login_required(login_url='/auth/login/')
 def post_edit(request, id):  # Параметр называется post_id
     post = get_object_or_404(Post, pk=id)
-    
+
     if request.user != post.author:
         messages.error(request, 'Вы не можете редактировать этот пост')
         return redirect('blog:post_detail', id=post.id)  # Используем post_id
-    
+
     if request.method == 'POST':
         form = PostForm(request.POST, request.FILES, instance=post)
         if form.is_valid():
             edited_post = form.save()
             messages.success(request, 'Пост успешно обновлён')
-            return redirect('blog:post_detail', id=edited_post.id)  # Используем post_id
+            return redirect('blog:post_detail', id=edited_post.id)
     else:
         form = PostForm(instance=post)
-    
+
     return render(request, 'blog/create.html', {'form': form})
+
 
 class ProfileView(DetailView):
     model = User
@@ -141,14 +146,15 @@ class ProfileView(DetailView):
         posts = Post.objects.filter(author=user).annotate(
             comment_count=Count('comments')
         ).order_by('-pub_date')
-        
+
         paginator = Paginator(posts, self.paginate_by)
         page_number = self.request.GET.get('page')
         page_obj = paginator.get_page(page_number)
-        
+
         context['page_obj'] = page_obj
         return context
-    
+
+
 class ProfileEditView(LoginRequiredMixin, UpdateView):
     model = User
     fields = ['first_name', 'last_name', 'email']
@@ -159,28 +165,30 @@ class ProfileEditView(LoginRequiredMixin, UpdateView):
         return self.request.user
 
     def get_success_url(self):
-        return reverse_lazy('blog:profile', kwargs={'username': self.request.user.username})
+        return reverse_lazy('blog:profile',
+                            kwargs={'username': self.request.user.username})
 
 
 def delete_post(request, pk):
     post = get_object_or_404(Post, pk=pk)
-    
+
     # Check if the user is the author of the post
     if request.user != post.author:
         messages.error(request, 'Вы не можете удалить этот пост')
         return redirect('blog:post_detail', id=pk)
-    
+
     if request.method == 'POST':
         post.delete()
         messages.success(request, 'Пост успешно удалён')
         return redirect('blog:profile', username=request.user.username)
-    
+
     # For GET request, show confirmation page
-    form = DeleteConfirmForm()  # This is just a placeholder form for the template
+    form = DeleteConfirmForm()
     return render(request, 'blog/create.html', {
         'form': form,
         'post': post,  # Pass the post to the template
     })
+
 
 @login_required
 def add_comment(request, post_id):
@@ -193,6 +201,7 @@ def add_comment(request, post_id):
             comment.post = post
             comment.save()
     return redirect('blog:post_detail', id=post_id)
+
 
 @login_required
 def edit_comment(request, post_id, comment_id):
@@ -211,6 +220,7 @@ def edit_comment(request, post_id, comment_id):
         'blog/comment.html',
         {'form': form, 'comment': comment}
     )
+
 
 @login_required
 def delete_comment(request, post_id, comment_id):

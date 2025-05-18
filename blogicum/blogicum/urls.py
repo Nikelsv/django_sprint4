@@ -21,9 +21,9 @@ from django.views.generic.edit import CreateView
 from django.contrib.auth.forms import UserCreationForm
 from django.urls import include, path, reverse_lazy
 
-handler404 = 'pages.views.page_not_found' 
-handler500 = 'pages.views.server_error' 
-CSRF_FAILURE_VIEW = 'pages.views.csrf_failure' 
+handler404 = 'pages.views.page_not_found'
+handler500 = 'pages.views.server_error'
+CSRF_FAILURE_VIEW = 'pages.views.csrf_failure'
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -31,7 +31,7 @@ urlpatterns = [
     path('pages/', include('pages.urls')),
     # Подключаем urls.py приложения для работы с пользователями.
     path(
-        'auth/registration/', 
+        'auth/registration/',
         CreateView.as_view(
             template_name='registration/registration_form.html',
             form_class=UserCreationForm,
@@ -40,5 +40,5 @@ urlpatterns = [
         name='registration',
     ),
     path('auth/', include('django.contrib.auth.urls')),
-    
+
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

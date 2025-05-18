@@ -58,10 +58,10 @@ MIDDLEWARE = [
 
 EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
 # Указываем директорию, в которую будут сохраняться файлы писем:
-EMAIL_FILE_PATH = BASE_DIR / 'sent_emails' 
+EMAIL_FILE_PATH = BASE_DIR / 'sent_emails'
 
 ROOT_URLCONF = 'blogicum.urls'
-LOGIN_REDIRECT_URL = 'pages:about' 
+LOGIN_REDIRECT_URL = 'pages:about'
 
 TEMPLATES_DIR = BASE_DIR / 'templates'
 
